@@ -1,20 +1,24 @@
 import pygame
 import math
+import json
 
 
 class PyGUI:
     def __init__(self) -> None:
+        with open("SETTINGS.json", 'r') as file:
+            settings = json.load(file)
+            self.windowSize = (settings['windowSize']['width'], settings['windowSize']['height'])
+            self.xLOffset = settings['margins']['xLOffset']
+            self.xROffset = settings['margins']['xROffset']
+            self.yTOffset = settings['margins']['yTOffset']
+            self.yBOffset = settings['margins']['yBOffset']
+            self.margin = settings['margins']['margin']
         self.caption = "PyPath Visualiser"
-        self.windowSize = (1336, 768)
         self.isRunning = None
         self.window = pygame.display.set_mode(self.windowSize)
         self.fadeRectSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA)
+        self.gridSurface = pygame.Surface(self.windowSize)
         self.clock = pygame.time.Clock()
-        self.xLOffset = 50
-        self.xROffset = 50
-        self.yTOffset = 150
-        self.yBOffset = 50
-        self.margin = 20
 
     def run(self) -> None:
         """run() is the main loop of the GUI, it handles the events"""
@@ -48,7 +52,11 @@ class PyGUI:
             # Sets FPS to 60
             self.clock.tick(60)
             # Draws rectangle surface to screen at 0, 0
-            self.window.blit(self.fadeRectSurface, (0, 0))
+            self.window.blits(((self.gridSurface, (0, 0)), (self.fadeRectSurface, (0, 0))))
+
+            # self.window.blit(self.gridSurface, (0, 0))
+            # self.window.blit(self.fadeRectSurface, (0, 0))
+
             # Updates all elements that aren't part of a surface
             pygame.display.update()
 
@@ -57,12 +65,14 @@ class PyGUI:
         for i in range(self.xLOffset, self.windowSize[0] - self.xROffset, self.margin):
             for j in range(self.yTOffset, self.windowSize[1] - self.yBOffset, self.margin):
                 node = pygame.Rect(i, j, self.margin, self.margin)
-                pygame.draw.rect(self.window, (200, 200, 200), node, 1)
+                pygame.draw.rect(self.gridSurface, (200, 200, 200), node, 1)
 
     def getGridEnds(self) -> [int, int]:
         """getGridEnds() performs a calculation which will get the x and y values of where the grid stops"""
-        xEnd = math.ceil(((self.windowSize[0]-self.xLOffset-self.xROffset) / self.margin))*self.margin + self.xLOffset - 1
-        yEnd = math.ceil((self.windowSize[1]-self.yTOffset-self.yBOffset) / self.margin)*self.margin + self.yTOffset - 1
+        xEnd = math.ceil(
+            ((self.windowSize[0] - self.xLOffset - self.xROffset) / self.margin)) * self.margin + self.xLOffset - 1
+        yEnd = math.ceil(
+            (self.windowSize[1] - self.yTOffset - self.yBOffset) / self.margin) * self.margin + self.yTOffset - 1
         return [xEnd, yEnd]
 
     def checkMouseOnGrid(self, pos: [int, int]) -> bool:
@@ -75,14 +85,15 @@ class PyGUI:
 
     def mouseToIndex(self, pos: [int, int]) -> [int, int]:
         """mouseToIndex() converts a mouse position to the appropriate index for the grid/node array"""
-        xIndex = math.floor((pos[0]-self.xLOffset)/20)
-        yIndex = math.floor((pos[1]-self.yTOffset)/20)
+        xIndex = math.floor((pos[0] - self.xLOffset) / self.margin)
+        yIndex = math.floor((pos[1] - self.yTOffset) / self.margin)
         return [xIndex, yIndex]
 
     def drawRectOnHover(self, pos: [int, int]) -> None:
         """drawRectOnHover() takes in an x and y index position and draws a rectangle to highlight where the mouse is"""
-        tmpRect = pygame.Rect(self.xLOffset+self.margin*pos[0], self.yTOffset+self.margin*pos[1], self.margin, self.margin)
-        pygame.draw.rect(self.fadeRectSurface, (255, 255, 0, 50), tmpRect, 0)
+        tmpRect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
+                              self.margin)
+        pygame.draw.rect(self.fadeRectSurface, (255, 255, 255, 60), tmpRect, 3)
 
 
 z = PyGUI()
