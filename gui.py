@@ -1,4 +1,5 @@
 import pygame
+import pygame_menu
 import math
 import json
 
@@ -27,14 +28,20 @@ class PyGUI:
         pygame.display.set_caption(self.caption)
 
         self.isRunning = True
+        nodesMenu = DropdownBox(
+            40, 40, 160, 40, (150, 150, 150), (100, 200, 255), pygame.font.SysFont(None, 30),
+            ["Start node", "End node", "Auxiliary node", "Wall"])
 
         while self.isRunning:
+            # Sets FPS to 60
+            self.clock.tick(60)
             # Decreases the opacity for the rectangles by 50 for every tick
             self.fadeRectSurface.fill((0, 0, 0, 50))
 
             self.drawGrid()
 
-            for event in pygame.event.get():
+            eventList = pygame.event.get()
+            for event in eventList:
                 if event.type == pygame.QUIT:
                     self.isRunning = False
                 elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -49,13 +56,12 @@ class PyGUI:
                 # Creates a yellow rectangle and increases the opacity by 50 for every tick
                 self.drawRectOnHover(curIndex)
 
-            # Sets FPS to 60
-            self.clock.tick(60)
             # Draws rectangle surface to screen at 0, 0
             self.window.blits(((self.gridSurface, (0, 0)), (self.fadeRectSurface, (0, 0))))
-
-            # self.window.blit(self.gridSurface, (0, 0))
-            # self.window.blit(self.fadeRectSurface, (0, 0))
+            selected_option = nodesMenu.update(eventList)
+            if selected_option >= 0:
+                print(selected_option)
+            nodesMenu.draw(self.window)
 
             # Updates all elements that aren't part of a surface
             pygame.display.update()
@@ -94,6 +100,62 @@ class PyGUI:
         tmpRect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
                               self.margin)
         pygame.draw.rect(self.fadeRectSurface, (255, 255, 255, 60), tmpRect, 3)
+
+
+class DropdownBox:
+    def __init__(self, x: int, y: int, w: int, h: int, color: pygame.Color, highlight_color: pygame.Color,
+                 font: pygame.font, option_list: [str], selected: int = 0) -> None:
+        self.color = color
+        self.highlight_color = highlight_color
+        self.rect = pygame.Rect(x, y, w, h)
+        self.font = font
+        self.option_list = option_list
+        self.selected = selected
+        self.draw_menu = False
+        self.menu_active = False
+        self.active_option = -1
+
+    def draw(self, surf: pygame.Surface) -> None:
+        pygame.draw.rect(surf, self.highlight_color if self.menu_active else self.color, self.rect)
+        pygame.draw.rect(surf, (0, 0, 0), self.rect, 2)
+        msg = self.font.render(self.option_list[self.selected], 1, (0, 0, 0))
+        surf.blit(msg, msg.get_rect(center=self.rect.center))
+
+        if self.draw_menu:
+            for i, text in enumerate(self.option_list):
+                rect = self.rect.copy()
+                rect.y += (i + 1) * self.rect.height
+                pygame.draw.rect(surf, self.highlight_color if i == self.active_option else self.color, rect)
+                msg = self.font.render(text, 1, (0, 0, 0))
+                surf.blit(msg, msg.get_rect(center=rect.center))
+            outer_rect = (
+            self.rect.x, self.rect.y + self.rect.height, self.rect.width, self.rect.height * len(self.option_list))
+            pygame.draw.rect(surf, (0, 0, 0), outer_rect, 2)
+
+    def update(self, event_list: [pygame.event]) -> None:
+        mpos = pygame.mouse.get_pos()
+        self.menu_active = self.rect.collidepoint(mpos)
+
+        self.active_option = -1
+        for i in range(len(self.option_list)):
+            rect = self.rect.copy()
+            rect.y += (i + 1) * self.rect.height
+            if rect.collidepoint(mpos):
+                self.active_option = i
+                break
+
+        if not self.menu_active and self.active_option == -1:
+            self.draw_menu = False
+
+        for event in event_list:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.menu_active:
+                    self.draw_menu = not self.draw_menu
+                elif self.draw_menu and self.active_option >= 0:
+                    self.selected = self.active_option
+                    self.draw_menu = False
+                    return self.active_option
+        return -1
 
 
 z = PyGUI()
