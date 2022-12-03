@@ -21,21 +21,32 @@ class PyGUI:
         self.fadeRectSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA)
         self.gridSurface = pygame.Surface(self.windowSize)
         self.clock = pygame.time.Clock()
+        size = self.getGridEnds()
+        self.nodeGraph = Graph([math.floor((size[0] - self.xLOffset) / self.margin),
+                                math.floor((size[1] - self.yTOffset) / self.margin)])
+        del size
 
     def run(self) -> None:
         """run() is the main loop of the GUI, it handles the events"""
         pygame.init()
         self.window.fill((0, 0, 0))
         pygame.display.set_caption(self.caption)
+
+        # Without this you could select an option that is over the grid and the grid would automatically place for you
+        potentialCollision = False
+        # This makes 'Nodes' option do nothing
         curNodeOption = -1
+
         self.isRunning = True
         nodesMenu = DropdownBox(
-            50, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255), pygame.font.SysFont(None, 30),
+            50, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
+            pygame.font.SysFont("freesansbold", 30),
             ["Nodes", "Start node", "End node", "Auxiliary node", "Wall"])
 
         algorithmsMenu = DropdownBox(
-            230, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255), pygame.font.SysFont(None, 30),
-            ["Dijkstra's", "A*"])
+            230, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
+            pygame.font.SysFont("freesansbold", 30),
+            ["Algorithms", "Dijkstra's", "A*"])
 
         while self.isRunning:
             # Sets FPS to 60
@@ -48,16 +59,19 @@ class PyGUI:
             eventList = pygame.event.get()
             selectedNode = nodesMenu.update(eventList)
             if selectedNode >= 0:
+                # Remembers the most recently pressed option for nodes
                 curNodeOption = selectedNode
+                potentialCollision = True
             selectedAlgorithm = algorithmsMenu.update(eventList)
 
             for event in eventList:
                 if event.type == pygame.QUIT:
                     self.isRunning = False
-                elif event.type == pygame.MOUSEBUTTONDOWN:
+                elif event.type == pygame.MOUSEBUTTONDOWN and not potentialCollision:
                     pos = pygame.mouse.get_pos()
                     if self.checkMouseOnGrid(pos):
                         mouseIndex = self.mouseToIndex(pos)
+                        print(mouseIndex)
                         self.placeNode(curNodeOption, mouseIndex)
 
             curPos = pygame.mouse.get_pos()
@@ -69,15 +83,14 @@ class PyGUI:
             # Draws rectangle surface to screen at 0, 0
             self.window.blits(((self.gridSurface, (0, 0)), (self.fadeRectSurface, (0, 0))))
 
-            if selectedNode >= 0:
-                print(selectedNode)
             nodesMenu.draw(self.window)
 
             if selectedAlgorithm >= 0:
-                print(selectedAlgorithm)
+                pass
 
             algorithmsMenu.draw(self.window)
             # Updates all elements that aren't part of a surface
+            potentialCollision = False
             pygame.display.update()
 
     def drawGrid(self) -> None:
@@ -118,14 +131,38 @@ class PyGUI:
     def placeNode(self, nodeType: int, pos) -> None:
         rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
                            self.margin)
+        if nodeType == -1:
+            return
+
+        nodes = self.nodeGraph.getNodes()
         if nodeType == 1:
+            start = self.nodeGraph.findStart()
+            if start:
+                # Logically removes start
+                startPos = start.getPosition()
+                nodes[startPos[0]][startPos[1]].setType(-1)
+                # Removes end from GUI
+                blankRect = pygame.Rect(self.xLOffset + self.margin * startPos[0], self.yTOffset + self.margin *
+                                        startPos[1], self.margin, self.margin)
+                pygame.draw.rect(self.gridSurface, (0, 0, 0), blankRect, 0)
+            nodes[pos[0]][pos[1]].setType(1)
             pygame.draw.rect(self.gridSurface, self.colours["0"], rect, 0)
+            return
         elif nodeType == 2:
+            end = self.nodeGraph.findEnd()
+            if end:
+                # Logically removes end
+                endPos = end.getPosition()
+                nodes[endPos[0]][endPos[1]].setType(-1)
+                # Removes end from GUI
+                blankRect = pygame.Rect(self.xLOffset + self.margin * endPos[0], self.yTOffset + self.margin *
+                                        endPos[1], self.margin, self.margin)
+                pygame.draw.rect(self.gridSurface, (0, 0, 0), blankRect, 0)
+            nodes[pos[0]][pos[1]].setType(2)
             pygame.draw.rect(self.gridSurface, self.colours["1"], rect, 0)
-        elif nodeType == 3:
-            pygame.draw.rect(self.gridSurface, self.colours["2"], rect, 0)
-        elif nodeType == 4:
-            pygame.draw.rect(self.gridSurface, self.colours["3"], rect, 0)
+            return
+
+        pygame.draw.rect(self.gridSurface, self.colours[str(nodeType - 1)], rect, 0)
 
 
 class DropdownBox:
@@ -142,6 +179,7 @@ class DropdownBox:
         self.activeOption = -1
 
     def draw(self, surface: pygame.Surface) -> None:
+        """draw() draws the dropdown menu"""
         pygame.draw.rect(surface, self.highlight if self.menuActive else self.color, self.rect)
         pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
         msg = self.font.render(self.optionList[self.selected], 1, (0, 0, 0))
@@ -159,6 +197,7 @@ class DropdownBox:
             pygame.draw.rect(surface, (0, 0, 0), outer_rect, 2)
 
     def update(self, event_list: [pygame.event]) -> int:
+        """update() Handles logic for pressing an option in the dropdown menu"""
         curPos = pygame.mouse.get_pos()
         self.menuActive = self.rect.collidepoint(curPos)
 
@@ -177,11 +216,12 @@ class DropdownBox:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.menuActive:
                     self.drawMenu = not self.drawMenu
-                elif self.drawMenu and self.activeOption >= 0:
+                elif self.drawMenu and self.activeOption >= 1:
                     self.selected = self.activeOption
                     self.drawMenu = False
                     return self.activeOption
         return -1
+
 
 z = PyGUI()
 z.run()

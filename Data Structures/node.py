@@ -1,5 +1,6 @@
 class Node:
     def __init__(self, position: [int, int], parent=None) -> None:
+        """type values: -1 is empty, 1 is start, 2 is end, 3 is auxiliary, 4 is wall node"""
         self.position = position
         self.parent = parent
         self.distance = 0
@@ -12,8 +13,8 @@ class Node:
     def setDistance(self, distance: int) -> None:
         self.distance = distance
 
-    def setType(self, type) -> None:
-        self.type = type
+    def setType(self, newType) -> None:
+        self.type = newType
 
     def getWeight(self) -> int:
         return self.weight
