@@ -1,4 +1,5 @@
 {
     "windowSize": {"width":  1336, "height":  766},
-    "margins":  {"xLOffset":  50, "xROffset":  50, "yTOffset":  150, "yBOffset":  50, "margin":  20}
+    "margins":  {"xLOffset":  50, "xROffset":  50, "yTOffset":  150, "yBOffset":  50, "margin":  20},
+    "colors": {"0":  [195, 225, 104], "1":  [255, 76, 48], "2":  [90, 34, 139], "3":  [108, 122, 137], "4":  [3, 138, 255], "5":  [255, 252, 127]}
 }
