@@ -21,9 +21,8 @@ class PyGUI:
         self.fadeRectSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA)
         self.gridSurface = pygame.Surface(self.windowSize)
         self.clock = pygame.time.Clock()
-        size = self.getGridEnds()
-        self.nodeGraph = Graph([math.floor((size[0] - self.xLOffset) / self.margin),
-                                math.floor((size[1] - self.yTOffset) / self.margin)])
+        size = self.getGridSize()
+        self.nodeGraph = Graph([size[0], size[1]])
         del size
 
     def run(self) -> None:
@@ -31,7 +30,7 @@ class PyGUI:
         pygame.init()
         self.window.fill((0, 0, 0))
         pygame.display.set_caption(self.caption)
-
+        print(self.getGridSize())
         # Without this you could select an option that is over the grid and the grid would automatically place for you
         potentialCollision = False
         # This makes 'Nodes' option do nothing
@@ -71,7 +70,6 @@ class PyGUI:
                     pos = pygame.mouse.get_pos()
                     if self.checkMouseOnGrid(pos):
                         mouseIndex = self.mouseToIndex(pos)
-                        print(mouseIndex)
                         self.placeNode(curNodeOption, mouseIndex)
 
             curPos = pygame.mouse.get_pos()
@@ -116,6 +114,9 @@ class PyGUI:
                 return True
         return False
 
+    def getGridSize(self) -> [int, int]:
+        return self.mouseToIndex(self.getGridEnds())
+
     def mouseToIndex(self, pos: [int, int]) -> [int, int]:
         """mouseToIndex() converts a mouse position to the appropriate index for the grid/node array"""
         xIndex = math.floor((pos[0] - self.xLOffset) / self.margin)
@@ -141,7 +142,7 @@ class PyGUI:
                 # Logically removes start
                 startPos = start.getPosition()
                 nodes[startPos[0]][startPos[1]].setType(-1)
-                # Removes end from GUI
+                # Removes start from GUI
                 blankRect = pygame.Rect(self.xLOffset + self.margin * startPos[0], self.yTOffset + self.margin *
                                         startPos[1], self.margin, self.margin)
                 pygame.draw.rect(self.gridSurface, (0, 0, 0), blankRect, 0)
