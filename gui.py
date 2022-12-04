@@ -30,7 +30,6 @@ class PyGUI:
         pygame.init()
         self.window.fill((0, 0, 0))
         pygame.display.set_caption(self.caption)
-        print(self.getGridSize())
         # Without this you could select an option that is over the grid and the grid would automatically place for you
         potentialCollision = False
         # This makes 'Nodes' option do nothing
@@ -38,14 +37,19 @@ class PyGUI:
 
         self.isRunning = True
         nodesMenu = DropdownBox(
-            50, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
+            self.xLOffset, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
             pygame.font.SysFont("freesansbold", 30),
             ["Nodes", "Start node", "End node", "Auxiliary node", "Wall"])
 
         algorithmsMenu = DropdownBox(
-            230, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
+            (160 + self.xLOffset), 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
             pygame.font.SysFont("freesansbold", 30),
             ["Algorithms", "Dijkstra's", "A*"])
+
+        visualiseButton = Button(
+            (self.windowSize[0] - self.xLOffset - self.xROffset) // 2, 40, 160, 40, pygame.Color(150, 150, 150),
+            pygame.Color(100, 200, 255),
+            pygame.font.SysFont("freesansbold", 30), "Visualise")
 
         while self.isRunning:
             # Sets FPS to 60
@@ -87,6 +91,7 @@ class PyGUI:
                 pass
 
             algorithmsMenu.draw(self.window)
+            visualiseButton.draw(self.window)
             # Updates all elements that aren't part of a surface
             potentialCollision = False
             pygame.display.update()
@@ -164,6 +169,33 @@ class PyGUI:
             return
 
         pygame.draw.rect(self.gridSurface, self.colours[str(nodeType - 1)], rect, 0)
+
+
+class Button:
+    def __init__(self, x: int, y: int, w: int, h: int, color: pygame.Color, highlight: pygame.Color, font: pygame.font,
+                 text: str, ):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.color = color
+        self.highlight = highlight
+        self.font = font
+        self.text = text
+
+    def draw(self, surface: pygame.Surface):
+        mouse = pygame.mouse.get_pos()
+        click = pygame.mouse.get_pressed()
+        if self.x + self.w > mouse[0] > self.x and self.y + self.h > mouse[1] > self.y:
+            pygame.draw.rect(surface, self.highlight, (self.x, self.y, self.w, self.h))
+            if click[0] == 1:
+                return True
+        else:
+            pygame.draw.rect(surface, self.color, (self.x, self.y, self.w, self.h))
+        text = self.font.render(self.text, True, (0, 0, 0))
+        surface.blit(text,
+                     (self.x + (self.w / 2 - text.get_width() / 2), self.y + (self.h / 2 - text.get_height() / 2)))
+        return False
 
 
 class DropdownBox:
