@@ -27,5 +27,3 @@ class Node:
 
     def getType(self) -> int:
         return self.type
-
-

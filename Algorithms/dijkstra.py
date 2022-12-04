@@ -29,7 +29,7 @@ class Dijkstra:
         return False
 
     @staticmethod
-    def calculateDistance(parent: Node, neighbour: Node, move: [int, int]) -> int:
+    def calculateDistance(parent: Node, neighbour: Node, move: [int, int]) -> None:
         """calculateDistance() calculates if a move from one node to a neighbour is diagonal
         and updates the neighbour nodes distance"""
         moveCost = abs(sum(move))
