@@ -36,10 +36,12 @@ class PyGUI:
         curNodeOption = -1
 
         self.isRunning = True
+
+        # BUTTON DEFINITION START
         nodesMenu = DropdownBox(
             self.xLOffset, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
             pygame.font.SysFont("freesansbold", 30),
-            ["Nodes", "Start node", "End node", "Auxiliary node", "Wall"])
+            ["Nodes", "Start node", "End node", "Auxiliary node", "Wall", "Eraser"])
 
         algorithmsMenu = DropdownBox(
             (160 + self.xLOffset), 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
@@ -51,7 +53,14 @@ class PyGUI:
             pygame.Color(100, 200, 255),
             pygame.font.SysFont("freesansbold", 30), "Visualise")
 
+        clearButton = Button(self.windowSize[0] - self.xROffset - 160, 40, 160, 40, pygame.Color(150, 150, 150),
+                             pygame.Color(100, 200, 255),
+                             pygame.font.SysFont("freesansbold", 30), "Clear all"
+                             )
+        # BUTTON DEFINITION END
+
         while self.isRunning:
+            # This is the main loop of the GUI, it handles the events
             # Sets FPS to 60
             self.clock.tick(60)
             # Decreases the opacity for the rectangles by 50 for every tick
@@ -87,11 +96,12 @@ class PyGUI:
 
             nodesMenu.draw(self.window)
 
-            if selectedAlgorithm >= 0:
-                pass
+            if clearButton.update(eventList) >= 0:
+                self.clearGrid()
 
             algorithmsMenu.draw(self.window)
             visualiseButton.draw(self.window)
+            clearButton.draw(self.window)
             # Updates all elements that aren't part of a surface
             potentialCollision = False
             pygame.display.update()
@@ -120,6 +130,7 @@ class PyGUI:
         return False
 
     def getGridSize(self) -> [int, int]:
+        """getGridSize() calculates the size of the grid, this is used to create the node graph"""
         return self.mouseToIndex(self.getGridEnds())
 
     def mouseToIndex(self, pos: [int, int]) -> [int, int]:
@@ -135,6 +146,7 @@ class PyGUI:
         pygame.draw.rect(self.fadeRectSurface, (255, 255, 255, 60), tmpRect, 3)
 
     def placeNode(self, nodeType: int, pos) -> None:
+        """placeNode() takes in a node type and position and places a node of that type at that position"""
         rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
                            self.margin)
         if nodeType == -1:
@@ -143,6 +155,7 @@ class PyGUI:
         nodes = self.nodeGraph.getNodes()
         if nodeType == 1:
             start = self.nodeGraph.findStart()
+            # If start node is already placed, remove it
             if start:
                 # Logically removes start
                 startPos = start.getPosition()
@@ -151,11 +164,9 @@ class PyGUI:
                 blankRect = pygame.Rect(self.xLOffset + self.margin * startPos[0], self.yTOffset + self.margin *
                                         startPos[1], self.margin, self.margin)
                 pygame.draw.rect(self.gridSurface, (0, 0, 0), blankRect, 0)
-            nodes[pos[0]][pos[1]].setType(1)
-            pygame.draw.rect(self.gridSurface, self.colours["0"], rect, 0)
-            return
         elif nodeType == 2:
             end = self.nodeGraph.findEnd()
+            # If end node is already placed, remove it
             if end:
                 # Logically removes end
                 endPos = end.getPosition()
@@ -164,11 +175,17 @@ class PyGUI:
                 blankRect = pygame.Rect(self.xLOffset + self.margin * endPos[0], self.yTOffset + self.margin *
                                         endPos[1], self.margin, self.margin)
                 pygame.draw.rect(self.gridSurface, (0, 0, 0), blankRect, 0)
-            nodes[pos[0]][pos[1]].setType(2)
-            pygame.draw.rect(self.gridSurface, self.colours["1"], rect, 0)
-            return
+        elif nodeType == 5:
+            # Changes eraser nodeType to blank node
+            nodeType = -1
+        nodes[pos[0]][pos[1]].setType(nodeType)
+        pygame.draw.rect(self.gridSurface, self.colours[str(nodeType)], rect, 0)
 
-        pygame.draw.rect(self.gridSurface, self.colours[str(nodeType - 1)], rect, 0)
+    def clearGrid(self):
+        """clearGrid() clears the grid of all nodes"""
+        size = self.getGridSize()
+        self.nodeGraph = Graph([size[0], size[1]])
+        self.gridSurface.fill((0, 0, 0))
 
 
 class Button:
@@ -178,16 +195,18 @@ class Button:
         self.y = y
         self.w = w
         self.h = h
+        self.rect = pygame.Rect(x, y, w, h)
         self.color = color
         self.highlight = highlight
         self.font = font
         self.text = text
 
-    def draw(self, surface: pygame.Surface):
+    def draw(self, surface: pygame.Surface) -> bool:
+        """draw() draws the button to the surface given"""
         mouse = pygame.mouse.get_pos()
         click = pygame.mouse.get_pressed()
         if self.x + self.w > mouse[0] > self.x and self.y + self.h > mouse[1] > self.y:
-            pygame.draw.rect(surface, self.highlight, (self.x, self.y, self.w, self.h))
+            pygame.draw.rect(surface, self.highlight, self.rect)
             if click[0] == 1:
                 return True
         else:
@@ -196,6 +215,15 @@ class Button:
         surface.blit(text,
                      (self.x + (self.w / 2 - text.get_width() / 2), self.y + (self.h / 2 - text.get_height() / 2)))
         return False
+
+    def update(self, event_list: [pygame.event]) -> int:
+        """update() updates the dropdown box based on the events"""
+        curPos = pygame.mouse.get_pos()
+        if self.rect.collidepoint(curPos):
+            for event in event_list:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    return 1
+        return -1
 
 
 class DropdownBox:
@@ -212,14 +240,17 @@ class DropdownBox:
         self.activeOption = -1
 
     def draw(self, surface: pygame.Surface) -> None:
-        """draw() draws the dropdown menu"""
+        """draw() draws the dropdown box to the surface given"""
+        # Draw the box
         pygame.draw.rect(surface, self.highlight if self.menuActive else self.color, self.rect)
         pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
         msg = self.font.render(self.optionList[self.selected], 1, (0, 0, 0))
         surface.blit(msg, msg.get_rect(center=self.rect.center))
 
+        # Draw the menu
         if self.drawMenu:
             for i, text in enumerate(self.optionList):
+                # Create a new rect for each option
                 rect = self.rect.copy()
                 rect.y += (i + 1) * self.rect.height
                 pygame.draw.rect(surface, self.highlight if i == self.activeOption else self.color, rect)
@@ -230,11 +261,12 @@ class DropdownBox:
             pygame.draw.rect(surface, (0, 0, 0), outer_rect, 2)
 
     def update(self, event_list: [pygame.event]) -> int:
-        """update() Handles logic for pressing an option in the dropdown menu"""
+        """update() updates the dropdown box based on the events"""
         curPos = pygame.mouse.get_pos()
         self.menuActive = self.rect.collidepoint(curPos)
 
         self.activeOption = -1
+        # Check if the mouse is hovering over an option sets it as activeOption for highlighting
         for i in range(len(self.optionList)):
             rect = self.rect.copy()
             rect.y += (i + 1) * self.rect.height
@@ -245,10 +277,12 @@ class DropdownBox:
         if not self.menuActive and self.activeOption == -1:
             self.drawMenu = False
 
+        # Check for events
         for event in event_list:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.menuActive:
                     self.drawMenu = not self.drawMenu
+                # Makes the top option unselectable
                 elif self.drawMenu and self.activeOption >= 1:
                     self.selected = self.activeOption
                     self.drawMenu = False
