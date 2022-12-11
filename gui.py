@@ -19,7 +19,10 @@ class PyGUI:
         self.isRunning = None
         self.window = pygame.display.set_mode(self.windowSize)
         self.fadeRectSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA)
-        self.gridSurface = pygame.Surface(self.windowSize)
+        self.gridSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA)
+        # Weight surface is made transparent
+        self.weightSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
+        self.weightSurface = self.weightSurface.convert_alpha()
         self.clock = pygame.time.Clock()
         size = self.getGridSize()
         self.nodeGraph = Graph([size[0], size[1]])
@@ -34,19 +37,20 @@ class PyGUI:
         potentialCollision = False
         # This makes 'Nodes' option do nothing
         curNodeOption = -1
-
         self.isRunning = True
 
         # BUTTON DEFINITION START
         nodesMenu = DropdownBox(
             self.xLOffset, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
             pygame.font.SysFont("freesansbold", 30),
-            ["Nodes", "Start node", "End node", "Auxiliary node", "Wall", "Eraser"])
+            ["Nodes", "Start node", "End node", "Auxiliary node", "Wall", "Eraser", "Weight"])
 
         algorithmsMenu = DropdownBox(
             (160 + self.xLOffset), 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
             pygame.font.SysFont("freesansbold", 30),
             ["Algorithms", "Dijkstra's", "A*"])
+
+        weightInput = InputBox((160 * 2 + self.xLOffset + 2), 42, 160, 36)
 
         visualiseButton = Button(
             (self.windowSize[0] - self.xLOffset - self.xROffset) // 2, 40, 160, 40, pygame.Color(150, 150, 150),
@@ -55,8 +59,7 @@ class PyGUI:
 
         clearButton = Button(self.windowSize[0] - self.xROffset - 160, 40, 160, 40, pygame.Color(150, 150, 150),
                              pygame.Color(100, 200, 255),
-                             pygame.font.SysFont("freesansbold", 30), "Clear all"
-                             )
+                             pygame.font.SysFont("freesansbold", 30), "Clear all")
         # BUTTON DEFINITION END
 
         while self.isRunning:
@@ -77,13 +80,18 @@ class PyGUI:
             selectedAlgorithm = algorithmsMenu.update(eventList)
 
             for event in eventList:
+                weightInput.handleEvent(event)
                 if event.type == pygame.QUIT:
                     self.isRunning = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and not potentialCollision:
                     pos = pygame.mouse.get_pos()
+                    # Makes weight option not place node
                     if self.checkMouseOnGrid(pos):
-                        mouseIndex = self.mouseToIndex(pos)
-                        self.placeNode(curNodeOption, mouseIndex)
+                        pos = self.mouseToIndex(pos)
+                        if curNodeOption <= 5:
+                            self.placeNode(curNodeOption, pos)
+                        elif curNodeOption == 6:
+                            self.placeWeight(pos, weightCost=weightInput.value)
 
             curPos = pygame.mouse.get_pos()
             curIndex = self.mouseToIndex(curPos)
@@ -91,14 +99,17 @@ class PyGUI:
                 # Creates a yellow rectangle and increases the opacity by 50 for every tick
                 self.drawRectOnHover(curIndex)
 
-            # Draws rectangle surface to screen at 0, 0
-            self.window.blits(((self.gridSurface, (0, 0)), (self.fadeRectSurface, (0, 0))))
-
+            # Draws all surfaces at 0,0
+            self.window.blit(self.gridSurface, (0, 0))
+            self.window.blit(self.fadeRectSurface, (0, 0))
+            # Draw the self.weightSurface surface onto the screen
+            self.window.blit(self.weightSurface, (0, 0))
             nodesMenu.draw(self.window)
 
             if clearButton.update(eventList) >= 0:
                 self.clearGrid()
 
+            weightInput.draw(self.window)
             algorithmsMenu.draw(self.window)
             visualiseButton.draw(self.window)
             clearButton.draw(self.window)
@@ -143,7 +154,7 @@ class PyGUI:
         """drawRectOnHover() takes in an x and y index position and draws a rectangle to highlight where the mouse is"""
         tmpRect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
                               self.margin)
-        pygame.draw.rect(self.fadeRectSurface, (255, 255, 255, 60), tmpRect, 3)
+        pygame.draw.rect(self.fadeRectSurface, (255, 255, 255, 60), tmpRect, 1)
 
     def placeNode(self, nodeType: int, pos) -> None:
         """placeNode() takes in a node type and position and places a node of that type at that position"""
@@ -178,14 +189,42 @@ class PyGUI:
         elif nodeType == 5:
             # Changes eraser nodeType to blank node
             nodeType = -1
+        if nodes[pos[0]][pos[1]].getWeight() > 1:
+            self.removeWeight(pos)
         nodes[pos[0]][pos[1]].setType(nodeType)
         pygame.draw.rect(self.gridSurface, self.colours[str(nodeType)], rect, 0)
 
-    def clearGrid(self):
-        """clearGrid() clears the grid of all nodes"""
+    def clearGrid(self) -> None:
+        """clearGrid() clears the grid of all nodes and weights"""
         size = self.getGridSize()
         self.nodeGraph = Graph([size[0], size[1]])
         self.gridSurface.fill((0, 0, 0))
+        self.weightSurface.fill((0, 0, 0, 0))
+
+    def placeWeight(self, pos: [int, int], weightCost: int = 1) -> None:
+        """placeWeight() takes in a mouse index and places a weight node at that position"""
+        self.removeWeight(pos)
+        rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1] + self.margin//4, self.margin,
+                           self.margin)
+        font = pygame.font.SysFont("freesansbold", 17)
+
+        nodes = self.nodeGraph.getNodes()
+        # Check to make sure node is 'air' node otherwise don't place weight
+        if nodes[pos[0]][pos[1]].getType() == -1:
+            textSurface = font.render(str(weightCost), True, (255, 255, 255))
+            # Weight greater than 999 is unreadable, so it isn't rendered but it is added logically
+            if weightCost < 1000:
+                self.weightSurface.blit(textSurface, rect)
+
+            nodes[pos[0]][pos[1]].setWeight(weightCost)
+
+    def removeWeight(self, pos):
+        """removeWeight() takes in a position and removes the weight at that position"""
+        rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
+                           self.margin)
+        nodes = self.nodeGraph.getNodes()
+        nodes[pos[0]][pos[1]].setWeight(1)
+        self.weightSurface.fill((0, 0, 0, 0), rect)
 
 
 class Button:
@@ -288,6 +327,41 @@ class DropdownBox:
                     self.drawMenu = False
                     return self.activeOption
         return -1
+
+
+class InputBox:
+    def __init__(self, x, y, width, height):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.font = pygame.font.SysFont("freesansbold", 30)
+        self.text = ""
+        self.value = 1
+
+    def draw(self, screen):
+        # Draw the input box background
+        pygame.draw.rect(screen, (150, 150, 150), self.rect)
+
+        # Render the text in the input box
+        text_surface = self.font.render(self.text, True, (0, 0, 0))
+        text_rect = text_surface.get_rect()
+        text_rect.center = self.rect.center
+        screen.blit(text_surface, text_rect)
+
+    def handleEvent(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                # Handle backspace key
+                self.text = self.text[:-1]
+            else:
+                # Add character to input box
+                self.text += event.unicode
+            self.handleInput(self.text)
+
+    def handleInput(self, text):
+        try:
+            self.value = int(text)
+        except ValueError:
+            self.value = 1
+            self.text = ""
 
 
 z = PyGUI()
