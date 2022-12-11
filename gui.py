@@ -1,6 +1,8 @@
 import pygame
 import math
 import json
+from dijkstra import runDijkstra
+from astar import runAStar
 from graph import Graph
 
 
@@ -23,6 +25,8 @@ class PyGUI:
         # Weight surface is made transparent
         self.weightSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
         self.weightSurface = self.weightSurface.convert_alpha()
+        self.pathSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
+        self.pathSurface = self.weightSurface.convert_alpha()
         self.clock = pygame.time.Clock()
         size = self.getGridSize()
         self.nodeGraph = Graph([size[0], size[1]])
@@ -30,6 +34,7 @@ class PyGUI:
 
     def run(self) -> None:
         """run() is the main loop of the GUI, it handles the events"""
+        print(self.getGridSize())
         pygame.init()
         self.window.fill((0, 0, 0))
         pygame.display.set_caption(self.caption)
@@ -77,7 +82,10 @@ class PyGUI:
                 # Remembers the most recently pressed option for nodes
                 curNodeOption = selectedNode
                 potentialCollision = True
+
             selectedAlgorithm = algorithmsMenu.update(eventList)
+            if selectedAlgorithm >= 0:
+                curAlgorithm = selectedAlgorithm
 
             for event in eventList:
                 weightInput.handleEvent(event)
@@ -103,11 +111,15 @@ class PyGUI:
             self.window.blit(self.gridSurface, (0, 0))
             self.window.blit(self.fadeRectSurface, (0, 0))
             # Draw the self.weightSurface surface onto the screen
+            self.window.blit(self.pathSurface, (0, 0))
             self.window.blit(self.weightSurface, (0, 0))
             nodesMenu.draw(self.window)
 
             if clearButton.update(eventList) >= 0:
                 self.clearGrid()
+
+            if visualiseButton.update(eventList) >= 0:
+                self.visualise(curAlgorithm)
 
             weightInput.draw(self.window)
             algorithmsMenu.draw(self.window)
@@ -230,6 +242,26 @@ class PyGUI:
         nodes = self.nodeGraph.getNodes()
         nodes[pos[0]][pos[1]].setWeight(1)
         self.weightSurface.fill((0, 0, 0, 0), rect)
+
+    def visualise(self, selectedAlgorithm):
+        """visualise() takes in a selected algorithm and visualises the pathfinding process"""
+        start = self.nodeGraph.findStart()
+        end = self.nodeGraph.findEnd()
+        auxiliaries = self.nodeGraph.findAuxiliaries()
+        if selectedAlgorithm == 1:
+            nodes, totalDistance = runDijkstra(start, end, auxiliaries, self.nodeGraph)
+        elif selectedAlgorithm == 2:
+            nodes = runAStar(start, end, auxiliaries, self.nodeGraph)
+
+        for node in nodes:
+            self.placePath(node.getPosition())
+        print(totalDistance)
+
+    def placePath(self, pos: [int, int]) -> None:
+        """placePath() takes in a list of nodes and places a path between them"""
+        rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
+                           self.margin)
+        pygame.draw.rect(self.pathSurface, self.colours["6"], rect, 0)
 
 
 class Button:

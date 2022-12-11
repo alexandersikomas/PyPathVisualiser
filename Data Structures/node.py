@@ -4,8 +4,9 @@ class Node:
         self.position = position
         self.parent = parent
         self.distance = 0  # G Score
-        self.estimated = 0 # F Score
+        self.estimated = 0  # F Score
         self.isWalkable = True
+        self.diagonal = False
         self.weight = 1
         self.type = -1
 
