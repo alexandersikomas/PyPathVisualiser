@@ -1,96 +1,68 @@
 from graph import Graph
 from node import Node
-import utility
 
 
-class AStar:
-    def __init__(self, graph: Graph, startNodePos: [int, int], endNodePos: [int, int], size: [int, int]):
-        self.graph = graph
-        self.startNodePos = startNodePos
-        self.endNodePos = endNodePos
-        self.size = size
-        self.route = []
-        self.routeFound = False
-        self.openList = []
-        self.closedList = []
+def aStar(start: Node, goal: Node, graph: Graph):
+    openList = [start]
+    closedList = []
+    start.distance = 0
 
-    def aStar(self) -> []:
-        # Create a list to store the open nodes (nodes to be explored)
-        startNode = Node(self.startNodePos)
-        endNode = Node(self.endNodePos)
-        open_nodes = [startNode]
-        # Create a list to store the closed nodes (nodes that have been explored)
-        closed_nodes = []
-        # Set the starting node's G score (distance from start) to 0
-        startNode.g = 0
-        # Set the starting node's F score (estimated total distance) to its heuristic
-        startNode.f = utility.heuristic(self.startNodePos, self.endNodePos)
+    # Calculate the heuristic (estimated distance to goal) for the start node
+    start.estimated = heuristic(start.getPosition(), goal.getPosition())
 
-        # While there are still nodes in the open nodes list
-        while open_nodes:
-            # Find the node in the open nodes list with the lowest F score
-            current_node = open_nodes[0]
-            for node in open_nodes:
-                if node.f < current_node.f:
-                    current_node = node
+    # Keep looping while there are nodes in the open list
+    while openList is not None:
+        # Find the node with the lowest estimated distance in the open list
+        current = min(openList, key=lambda node: node.estimated)
 
-            # If the current node is the end node, we have found a path
-            if current_node == endNode:
-                # Create a list to store the path
-                path = []
+        # If the current node is the goal node, we have found the shortest path
+        if current is goal:
+            path = []
+            # Trace the path by following the parent nodes back to the start
+            while current is not start:
+                path.append(current)
+                current = current.parent
+            # Return the path, with the start node at the front and the goal node at the end
+            return path[::-1]
 
-                # Traverse the path from the end node to the start node
-                current = endNode
-                while current is not startNode:
-                    path.append(current)
-                    current = current.parent
+        openList.remove(current)
+        closedList.append(current)
 
-                # Reverse the path and return it
-                return path[::-1]
+        neighbours = graph.getNeighbours(current)
+        for neighbour in neighbours:
+            if neighbour in closedList or not neighbour.isWalkable:
+                continue
+            # Calculate the distance from the current node to the neighbour
+            distance = current.distance + neighbour.getWeight()
 
-            # Remove the current node from the open nodes list and add it to the closed nodes list
-            open_nodes.remove(current_node)
-            closed_nodes.append(current_node)
+            if neighbour not in openList:
+                # Set the neighbour's distance and estimated distance
+                neighbour.distance = distance
+                neighbour.estimated = distance + heuristic(neighbour.getPosition(), goal.getPosition())
+                # Set the neighbour's parent node to the current node
+                neighbour.parent = current
+                openList.append(neighbour)
+            else:
+                # Otherwise, if the current distance to the neighbour is shorter than the previously
+                # recorded distance, update the neighbour's distance and estimated distance
+                if neighbour.distance > distance:
+                    neighbour.distance = distance
+                    neighbour.estimated = distance + heuristic(neighbour.getPosition(), goal.getPosition())
 
-            # For each neighbor of the current node
-            for neighbor in current_node.neighbors:
-                # Skip the neighbor if it is in the closed nodes list or if it is not walkable
-                if neighbor in closed_nodes or not neighbor.is_walkable:
-                    continue
-
-                # Calculate the G score of the neighbor (distance from start)
-                g_score = current_node.g + 1
-
-                # If the neighbor is not in the open nodes list
-                if neighbor not in open_nodes:
-                    # Set the neighbor's G score and F score
-                    neighbor.g = g_score
-                    neighbor.f = g_score + utility.heuristic(neighbor, endNode)
-
-                    # Set the neighbor's parent to the current node
-                    neighbor.parent = current_node
-
-                    # Add the neighbor to the open nodes list
-                    open_nodes.append(neighbor)
-                else:
-                    # If the neighbor is already in the open nodes list and its G score is higher than the calculated G
-                    # score
-                    if neighbor.g > g_score:
-                        # Update the neighbor's G score and F score
-                        neighbor.g = g_score
-                        neighbor.f = g_score + utility.heuristic(neighbor, endNode)
-
-                        # Set the neighbor's parent to the current node
-                        neighbor.parent = current_node
-
-                        # If the search failed, return an empty list
-                    return []
-
-    def search(self):
-        return a_star_search(self.start, self.end)
+                    neighbour.parent = current
+    # If the open list is empty, we have explored all reachable nodes and there is no path to the goal
+    return []
 
 
-# Define a function to calculate the heuristic for a given node
+def heuristic(startNode, endNode):
+    # Calculate the heuristic using the Manhattan distance formula
+    return abs(startNode[0] - endNode[0]) + abs(startNode[1] - endNode[1])
 
 
-
+def runAStar(start, goal, auxiliaryNodes, graph):
+    if auxiliaryNodes:
+        for _ in auxiliaryNodes:
+            tmp = auxiliaryNodes.pop(0)
+            aStar(start, tmp, graph)
+            start = tmp
+    aStar(start, goal, graph)

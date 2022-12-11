@@ -158,12 +158,15 @@ class PyGUI:
 
     def placeNode(self, nodeType: int, pos) -> None:
         """placeNode() takes in a node type and position and places a node of that type at that position"""
+
         rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
                            self.margin)
         if nodeType == -1:
             return
 
         nodes = self.nodeGraph.getNodes()
+        # Sets the node to be walkable this is then changed to False if it is a wall
+        nodes[pos[0]][pos[1]].setWalkable(True)
         if nodeType == 1:
             start = self.nodeGraph.findStart()
             # If start node is already placed, remove it
@@ -186,6 +189,8 @@ class PyGUI:
                 blankRect = pygame.Rect(self.xLOffset + self.margin * endPos[0], self.yTOffset + self.margin *
                                         endPos[1], self.margin, self.margin)
                 pygame.draw.rect(self.gridSurface, (0, 0, 0), blankRect, 0)
+        elif nodeType == 4:
+            nodes[pos[0]][pos[1]].setWalkable(False)
         elif nodeType == 5:
             # Changes eraser nodeType to blank node
             nodeType = -1
@@ -362,6 +367,9 @@ class InputBox:
         except ValueError:
             self.value = 1
             self.text = ""
+        if self.value > 999:
+            self.value = 999
+            self.text = "999"
 
 
 z = PyGUI()

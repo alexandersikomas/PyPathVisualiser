@@ -3,7 +3,9 @@ class Node:
         """type values: -1 is empty, 1 is start, 2 is end, 3 is auxiliary, 4 is wall node"""
         self.position = position
         self.parent = parent
-        self.distance = 0
+        self.distance = 0  # G Score
+        self.estimated = 0 # F Score
+        self.isWalkable = True
         self.weight = 1
         self.type = -1
 
@@ -27,3 +29,6 @@ class Node:
 
     def getType(self) -> int:
         return self.type
+
+    def setWalkable(self, walkable: bool) -> None:
+        self.isWalkable = walkable
