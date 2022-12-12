@@ -22,7 +22,7 @@ class Graph:
                     return node
         return False
 
-    def findAuxiliaries(self):
+    def findAuxiliaries(self) -> list[Node] | bool:
         auxiliaries = []
         for rows in self.nodes:
             for node in rows:
@@ -32,8 +32,12 @@ class Graph:
             return auxiliaries
         return False
 
-    def getNeighbours(self, node):
+    def getNeighbours(self, node: Node, diagonalOption: bool = True) -> [Node]:
+        """getNeighbours() Returns a list of all the neighbours of a node, ability to turn off diagonal moves"""
         neighbours = []
+        positions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
+        if diagonalOption:
+            positions.extend([(1, 1), (-1, -1), (1, -1), (-1, 1)])
 
         for dx, dy in [(0, -1), (1, 0), (0, 1), (-1, 0), (1, 1), (-1, -1), (1, -1), (-1, 1)]:
             pos = node.getPosition()

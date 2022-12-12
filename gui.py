@@ -78,6 +78,7 @@ class PyGUI:
 
             eventList = pygame.event.get()
             selectedNode = nodesMenu.update(eventList)
+            visualisePress = visualiseButton.update(eventList)
             if selectedNode >= 0:
                 # Remembers the most recently pressed option for nodes
                 curNodeOption = selectedNode
@@ -86,6 +87,10 @@ class PyGUI:
             selectedAlgorithm = algorithmsMenu.update(eventList)
             if selectedAlgorithm >= 0:
                 curAlgorithm = selectedAlgorithm
+                potentialCollision = True
+
+            if visualiseButton.update(eventList) >= 0:
+                self.visualise(curAlgorithm)
 
             for event in eventList:
                 weightInput.handleEvent(event)
@@ -117,9 +122,6 @@ class PyGUI:
 
             if clearButton.update(eventList) >= 0:
                 self.clearGrid()
-
-            if visualiseButton.update(eventList) >= 0:
-                self.visualise(curAlgorithm)
 
             weightInput.draw(self.window)
             algorithmsMenu.draw(self.window)
@@ -255,7 +257,7 @@ class PyGUI:
         if selectedAlgorithm == 1:
             nodes, totalDistance = runDijkstra(start, end, auxiliaries, self.nodeGraph)
         elif selectedAlgorithm == 2:
-            nodes = runAStar(start, end, auxiliaries, self.nodeGraph)
+            nodes, totalDistance = runAStar(start, end, auxiliaries, self.nodeGraph)
 
         self.nodeGraph = tmp
 

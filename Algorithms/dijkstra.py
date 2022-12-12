@@ -2,12 +2,7 @@ from graph import Graph
 from node import Node
 
 
-def heuristic(startNode, endNode):
-    # Calculate the heuristic using the Manhattan distance formula
-    return abs(startNode[0] - endNode[0]) + abs(startNode[1] - endNode[1])
-
-
-def dijkstra(start: Node, goal: Node, graph: Graph):
+def dijkstra(start: Node, goal: Node, graph: Graph) -> [[Node], int]:
     """dijkstra() is used to run dijkstra's shortest path algorithm"""
     # Create a list of nodes to be explored (the "open list")
     openList = [start]
@@ -57,7 +52,7 @@ def dijkstra(start: Node, goal: Node, graph: Graph):
                 neighbour.parent = current
 
     # If the open list is empty, we have explored all reachable nodes and there is no path to the goal
-    return []
+    return [[], 0]
 
 
 def runDijkstra(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -> [[Node], int]:
@@ -74,6 +69,9 @@ def runDijkstra(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -
             # Set the current node as the new starting node
             start = aNode
             # Add the current distance to the total distance
+            # If at any point an auxiliary node is unreachable, return an empty path
+            if curDistance == 0:
+                return [], 0
             totalDistance += curDistance
     # Run Dijkstra's algorithm with the final start and goal nodes
     curPath, curDistance = dijkstra(start, goal, graph)
