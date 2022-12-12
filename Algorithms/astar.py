@@ -46,6 +46,11 @@ def aStar(start: Node, goal: Node, graph: Graph):
                 # Set the neighbour's parent node to the current node
                 neighbour.parent = current
                 openList.append(neighbour)
+            if neighbour.estimated < neighbour.distance:
+                neighbour.distance = neighbour.estimated
+                neighbour.parent = current
+
+
     # If the open list is empty, we have explored all reachable nodes and there is no path to the goal
     return [[], 0, []]
 
