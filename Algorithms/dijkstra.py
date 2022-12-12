@@ -2,7 +2,7 @@ from graph import Graph
 from node import Node
 
 
-def dijkstra(start: Node, goal: Node, graph: Graph) -> [[Node], int]:
+def dijkstra(start: Node, goal: Node, graph: Graph) -> tuple[list, int, list]:
     """dijkstra() is used to run dijkstra's shortest path algorithm"""
     # Create a list of nodes to be explored (the "open list")
     openList = [start]
@@ -26,7 +26,7 @@ def dijkstra(start: Node, goal: Node, graph: Graph) -> [[Node], int]:
                 path.append(current)
                 current = current.parent
             # Return the path, with the start node at the front and the goal node at the end
-            return path[::-1], totalDistance
+            return path[::-1], totalDistance, closedList
 
         # Remove the current node from the open list
         openList.remove(current)
@@ -52,30 +52,37 @@ def dijkstra(start: Node, goal: Node, graph: Graph) -> [[Node], int]:
                 neighbour.parent = current
 
     # If the open list is empty, we have explored all reachable nodes and there is no path to the goal
-    return [[], 0]
+    return [[], 0, []]
 
 
-def runDijkstra(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -> [[Node], int]:
+def runDijkstra(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -> tuple[list, int, list]:
     """runDijkstra() is used to run dijkstra() with auxiliary nodes"""
     path = []
+    closedList = []
     totalDistance = 0
     # If there are auxiliary nodes, run Dijkstra's algorithm with each one in turn
     if auxiliaryNodes:
         for aNode in auxiliaryNodes:
-            curPath, curDistance = dijkstra(start, aNode, graph)
+            curPath, curDistance, curClosedList = dijkstra(start, aNode, graph)
             # Add the current path to the overall path
             for node in curPath:
                 path.append(node)
+            for node in curClosedList:
+                closedList.append(node)
             # Set the current node as the new starting node
             start = aNode
             # Add the current distance to the total distance
             # If at any point an auxiliary node is unreachable, return an empty path
             if curDistance == 0:
-                return [], 0
+                return [], 0, []
             totalDistance += curDistance
     # Run Dijkstra's algorithm with the final start and goal nodes
-    curPath, curDistance = dijkstra(start, goal, graph)
+    curPath, curDistance, curClosedList = dijkstra(start, goal, graph)
     totalDistance += curDistance
     for node in curPath:
         path.append(node)
-    return path, totalDistance
+
+    for node in curClosedList:
+        closedList.append(node)
+
+    return path, totalDistance, closedList

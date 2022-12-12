@@ -2,7 +2,7 @@ from graph import Graph
 from node import Node
 
 
-def aStar(start: Node, goal: Node, graph: Graph) -> [[Node], int]:
+def aStar(start: Node, goal: Node, graph: Graph) -> tuple[list, int, list]:
     openList = [start]
     closedList = []
     start.distance = 0
@@ -24,7 +24,7 @@ def aStar(start: Node, goal: Node, graph: Graph) -> [[Node], int]:
                 path.append(current)
                 current = current.parent
             # Return the path, with the start node at the front and the goal node at the end
-            return path[::-1], totalDistance
+            return path[::-1], totalDistance, closedList
 
         openList.remove(current)
         closedList.append(current)
@@ -44,7 +44,7 @@ def aStar(start: Node, goal: Node, graph: Graph) -> [[Node], int]:
                 neighbour.parent = current
                 openList.append(neighbour)
     # If the open list is empty, we have explored all reachable nodes and there is no path to the goal
-    return [[], 0]
+    return [[], 0, []]
 
 
 def heuristic(startNode: [int, int], endNode: [int, int]) -> int:
@@ -52,21 +52,30 @@ def heuristic(startNode: [int, int], endNode: [int, int]) -> int:
     return abs(startNode[0] - endNode[0]) + abs(startNode[1] - endNode[1])
 
 
-def runAStar(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -> [[Node], int]:
+def runAStar(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -> tuple[list, int, list]:
     path = []
+    closedList = []
     totalDistance = 0
     if auxiliaryNodes:
         for aNode in auxiliaryNodes:
-            curPath, curDistance = aStar(start, aNode, graph)
+            curPath, curDistance, curClosedList = aStar(start, aNode, graph)
             for node in curPath:
                 path.append(node)
+
+            for node in curClosedList:
+                closedList.append(node)
+
             start = aNode
             # If at any point an auxiliary node is unreachable, return an empty path
             if curDistance == 0:
                 return [], 0
             totalDistance += curDistance
-    curPath, curDistance = aStar(start, goal, graph)
+    curPath, curDistance, curClosedList = aStar(start, goal, graph)
     totalDistance += curDistance
     for node in curPath:
         path.append(node)
-    return path, totalDistance
+
+    for node in curClosedList:
+        closedList.append(node)
+
+    return path, totalDistance, closedList

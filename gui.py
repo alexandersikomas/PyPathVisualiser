@@ -1,6 +1,7 @@
 import pygame
 import math
 import json
+import time
 from dijkstra import runDijkstra
 from astar import runAStar
 from graph import Graph
@@ -34,9 +35,8 @@ class PyGUI:
 
     def run(self) -> None:
         """run() is the main loop of the GUI, it handles the events"""
-        print(self.getGridSize())
         pygame.init()
-        self.window.fill((0, 0, 0))
+        self.window.fill((0, 0, 0, 0))
         pygame.display.set_caption(self.caption)
         # Without this you could select an option that is over the grid and the grid would automatically place for you
         potentialCollision = False
@@ -90,7 +90,15 @@ class PyGUI:
                 potentialCollision = True
 
             if visualiseButton.update(eventList) >= 0:
-                self.visualise(curAlgorithm)
+                try:
+                    self.pathSurface.fill((0, 0, 0, 0))
+                    self.pathSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
+                    self.pathSurface = self.weightSurface.convert_alpha()
+                    self.window.blit(self.pathSurface, (0, 0))
+                    pygame.display.update()
+                    self.visualise(curAlgorithm)
+                except UnboundLocalError:
+                    print("No algorithm selected")
 
             for event in eventList:
                 weightInput.handleEvent(event)
@@ -113,10 +121,10 @@ class PyGUI:
                 self.drawRectOnHover(curIndex)
 
             # Draws all surfaces at 0,0
+            self.window.blit(self.pathSurface, (0, 0))
             self.window.blit(self.gridSurface, (0, 0))
             self.window.blit(self.fadeRectSurface, (0, 0))
             # Draw the self.weightSurface surface onto the screen
-            self.window.blit(self.pathSurface, (0, 0))
             self.window.blit(self.weightSurface, (0, 0))
             nodesMenu.draw(self.window)
 
@@ -191,7 +199,7 @@ class PyGUI:
                 # Removes start from GUI
                 blankRect = pygame.Rect(self.xLOffset + self.margin * startPos[0], self.yTOffset + self.margin *
                                         startPos[1], self.margin, self.margin)
-                pygame.draw.rect(self.gridSurface, (0, 0, 0), blankRect, 0)
+                pygame.draw.rect(self.gridSurface, (0, 0, 0, 0), blankRect, 0)
         elif nodeType == 2:
             end = self.nodeGraph.findEnd()
             # If end node is already placed, remove it
@@ -202,7 +210,9 @@ class PyGUI:
                 # Removes end from GUI
                 blankRect = pygame.Rect(self.xLOffset + self.margin * endPos[0], self.yTOffset + self.margin *
                                         endPos[1], self.margin, self.margin)
-                pygame.draw.rect(self.gridSurface, (0, 0, 0), blankRect, 0)
+                # Set to (0,0,0,0) because otherwise if colour is (0,0,0) then the path drawn cannot draw
+                # over this due to the alpha
+                pygame.draw.rect(self.gridSurface, (0, 0, 0, 0), blankRect, 0)
         elif nodeType == 4:
             nodes[pos[0]][pos[1]].setWalkable(False)
         elif nodeType == 5:
@@ -217,9 +227,10 @@ class PyGUI:
         """clearGrid() clears the grid of all nodes and weights"""
         size = self.getGridSize()
         self.nodeGraph = Graph([size[0], size[1]])
-        self.gridSurface.fill((0, 0, 0))
+        self.gridSurface.fill((0, 0, 0, 0))
         self.weightSurface.fill((0, 0, 0, 0))
-        self.pathSurface.fill((0, 0, 0, 0))
+        self.pathSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
+        self.pathSurface = self.weightSurface.convert_alpha()
 
     def placeWeight(self, pos: [int, int], weightCost: int = 1) -> None:
         """placeWeight() takes in a mouse index and places a weight node at that position"""
@@ -248,28 +259,43 @@ class PyGUI:
 
     def visualise(self, selectedAlgorithm):
         """visualise() takes in a selected algorithm and visualises the pathfinding process"""
-        self.pathSurface.fill((0, 0, 0, 0))
         start = self.nodeGraph.findStart()
         end = self.nodeGraph.findEnd()
         auxiliaries = self.nodeGraph.findAuxiliaries()
         # The algorithms chane the distances of the nodes, so the distances need to be reset
         tmp = self.nodeGraph
         if selectedAlgorithm == 1:
-            nodes, totalDistance = runDijkstra(start, end, auxiliaries, self.nodeGraph)
+            nodes, totalDistance, closedList = runDijkstra(start, end, auxiliaries, self.nodeGraph)
+            print("Running Dijkstra's algorithm")
         elif selectedAlgorithm == 2:
-            nodes, totalDistance = runAStar(start, end, auxiliaries, self.nodeGraph)
+            nodes, totalDistance, closedList = runAStar(start, end, auxiliaries, self.nodeGraph)
+            print("Running A* algorithm")
 
         self.nodeGraph = tmp
 
-        for node in nodes:
-            self.placePath(node.getPosition())
-        print(totalDistance)
+        for node in closedList[1::]:
+            self.placePath(node.getPosition(), True)
+            self.window.blit(self.pathSurface, (0, 0))
+            pygame.time.wait(10)
+            pygame.display.update()
 
-    def placePath(self, pos: [int, int]) -> None:
+        for node in nodes[0:-1]:
+            self.placePath(node.getPosition())
+        if totalDistance > 0:
+            print(f'Distance: {totalDistance}')
+        else:
+            print("No path found")
+
+    def placePath(self, pos: [int, int], closed=False) -> None:
         """placePath() takes in a list of nodes and places a path between them"""
         rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
                            self.margin)
-        pygame.draw.rect(self.pathSurface, self.colours["6"], rect, 0)
+        if closed:
+            colour = self.colours["5"]
+        else:
+            colour = self.colours["6"]
+
+        pygame.draw.rect(self.pathSurface, colour, rect, 0)
 
 
 class Button:
@@ -295,7 +321,7 @@ class Button:
                 return True
         else:
             pygame.draw.rect(surface, self.color, (self.x, self.y, self.w, self.h))
-        text = self.font.render(self.text, True, (0, 0, 0))
+        text = self.font.render(self.text, True, (0, 0, 0, 0))
         surface.blit(text,
                      (self.x + (self.w / 2 - text.get_width() / 2), self.y + (self.h / 2 - text.get_height() / 2)))
         return False
@@ -327,8 +353,8 @@ class DropdownBox:
         """draw() draws the dropdown box to the surface given"""
         # Draw the box
         pygame.draw.rect(surface, self.highlight if self.menuActive else self.color, self.rect)
-        pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
-        msg = self.font.render(self.optionList[self.selected], 1, (0, 0, 0))
+        pygame.draw.rect(surface, (0, 0, 0, 0), self.rect, 2)
+        msg = self.font.render(self.optionList[self.selected], 1, (0, 0, 0, 0))
         surface.blit(msg, msg.get_rect(center=self.rect.center))
 
         # Draw the menu
@@ -338,11 +364,11 @@ class DropdownBox:
                 rect = self.rect.copy()
                 rect.y += (i + 1) * self.rect.height
                 pygame.draw.rect(surface, self.highlight if i == self.activeOption else self.color, rect)
-                msg = self.font.render(text, 1, (0, 0, 0))
+                msg = self.font.render(text, 1, (0, 0, 0, 0))
                 surface.blit(msg, msg.get_rect(center=rect.center))
             outer_rect = (
                 self.rect.x, self.rect.y + self.rect.height, self.rect.width, self.rect.height * len(self.optionList))
-            pygame.draw.rect(surface, (0, 0, 0), outer_rect, 2)
+            pygame.draw.rect(surface, (0, 0, 0, 0), outer_rect, 2)
 
     def update(self, event_list: [pygame.event]) -> int:
         """update() updates the dropdown box based on the events"""
@@ -386,7 +412,7 @@ class InputBox:
         pygame.draw.rect(screen, (150, 150, 150), self.rect)
 
         # Render the text in the input box
-        text_surface = self.font.render(self.text, True, (0, 0, 0))
+        text_surface = self.font.render(self.text, True, (0, 0, 0, 0))
         text_rect = text_surface.get_rect()
         text_rect.center = self.rect.center
         screen.blit(text_surface, text_rect)
