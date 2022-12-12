@@ -1,8 +1,10 @@
+from typing import List, Any, Tuple
+
 from graph import Graph
 from node import Node
 
 
-def aStar(start: Node, goal: Node, graph: Graph) -> tuple[list, int, list]:
+def aStar(start: Node, goal: Node, graph: Graph):
     openList = [start]
     closedList = []
     start.distance = 0
@@ -14,11 +16,12 @@ def aStar(start: Node, goal: Node, graph: Graph) -> tuple[list, int, list]:
     while openList:
         # Find the node with the lowest estimated distance in the open list
         current = min(openList, key=lambda node: node.estimated)
+        #current = openList.sort(key=lambda node: node.estimated)
 
         # If the current node is the goal node, we have found the shortest path
         if current is goal:
             path = []
-            totalDistance = current.getDistance()
+            totalDistance = current.distance
             # Trace the path by following the parent nodes back to the start
             while current is not start:
                 path.append(current)
@@ -39,7 +42,7 @@ def aStar(start: Node, goal: Node, graph: Graph) -> tuple[list, int, list]:
             if neighbour not in openList:
                 # Set the neighbour's distance and estimated distance
                 neighbour.distance = distance
-                neighbour.estimated = distance + heuristic(neighbour.getPosition(), goal.getPosition())
+                neighbour.estimated = heuristic(neighbour.getPosition(), goal.getPosition())
                 # Set the neighbour's parent node to the current node
                 neighbour.parent = current
                 openList.append(neighbour)

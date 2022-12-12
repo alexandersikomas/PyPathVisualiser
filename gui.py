@@ -1,7 +1,6 @@
 import pygame
 import math
 import json
-import time
 from dijkstra import runDijkstra
 from astar import runAStar
 from graph import Graph
@@ -21,8 +20,10 @@ class PyGUI:
         self.caption = "PyPath Visualiser"
         self.isRunning = None
         self.window = pygame.display.set_mode(self.windowSize)
-        self.fadeRectSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA)
-        self.gridSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA)
+        self.fadeRectSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
+        self.gridSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
+        self.gridSurface = self.gridSurface.convert_alpha()
+        self.fadeRectSurface = self.fadeRectSurface.convert_alpha()
         # Weight surface is made transparent
         self.weightSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
         self.weightSurface = self.weightSurface.convert_alpha()
@@ -37,6 +38,7 @@ class PyGUI:
         """run() is the main loop of the GUI, it handles the events"""
         pygame.init()
         self.window.fill((0, 0, 0, 0))
+        self.window.set_alpha(255)
         pygame.display.set_caption(self.caption)
         # Without this you could select an option that is over the grid and the grid would automatically place for you
         potentialCollision = False
@@ -89,9 +91,8 @@ class PyGUI:
                 curAlgorithm = selectedAlgorithm
                 potentialCollision = True
 
-            if visualiseButton.update(eventList) >= 0:
+            if visualisePress >= 0:
                 try:
-                    pygame.display.update()
                     self.visualise(curAlgorithm)
                 except UnboundLocalError:
                     print("No algorithm selected")
@@ -117,6 +118,7 @@ class PyGUI:
                 self.drawRectOnHover(curIndex)
 
             # Draws all surfaces at 0,0
+
             self.window.blit(self.pathSurface, (0, 0))
             self.window.blit(self.gridSurface, (0, 0))
             self.window.blit(self.fadeRectSurface, (0, 0))
@@ -131,7 +133,6 @@ class PyGUI:
             algorithmsMenu.draw(self.window)
             visualiseButton.draw(self.window)
             clearButton.draw(self.window)
-            # Updates all elements that aren't part of a surface
             potentialCollision = False
             pygame.display.update()
 
@@ -278,13 +279,13 @@ class PyGUI:
             pygame.time.wait(10)
             pygame.display.update()
 
+        pygame.event.set_allowed(pygame.MOUSEBUTTONDOWN)
         for node in nodes[0:-1]:
             self.placePath(node.getPosition())
         if totalDistance > 0:
             print(f'Distance: {totalDistance}')
         else:
             print("No path found")
-
     def placePath(self, pos: [int, int], closed=False) -> None:
         """placePath() takes in a list of nodes and places a path between them"""
         rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,
