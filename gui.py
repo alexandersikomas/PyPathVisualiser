@@ -217,6 +217,7 @@ class PyGUI:
         self.nodeGraph = Graph([size[0], size[1]])
         self.gridSurface.fill((0, 0, 0))
         self.weightSurface.fill((0, 0, 0, 0))
+        self.pathSurface.fill((0, 0, 0, 0))
 
     def placeWeight(self, pos: [int, int], weightCost: int = 1) -> None:
         """placeWeight() takes in a mouse index and places a weight node at that position"""
@@ -245,13 +246,18 @@ class PyGUI:
 
     def visualise(self, selectedAlgorithm):
         """visualise() takes in a selected algorithm and visualises the pathfinding process"""
+        self.pathSurface.fill((0, 0, 0, 0))
         start = self.nodeGraph.findStart()
         end = self.nodeGraph.findEnd()
         auxiliaries = self.nodeGraph.findAuxiliaries()
+        # The algorithms chane the distances of the nodes, so the distances need to be reset
+        tmp = self.nodeGraph
         if selectedAlgorithm == 1:
             nodes, totalDistance = runDijkstra(start, end, auxiliaries, self.nodeGraph)
         elif selectedAlgorithm == 2:
             nodes = runAStar(start, end, auxiliaries, self.nodeGraph)
+
+        self.nodeGraph = tmp
 
         for node in nodes:
             self.placePath(node.getPosition())

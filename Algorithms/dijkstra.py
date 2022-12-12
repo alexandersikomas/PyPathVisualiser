@@ -6,7 +6,9 @@ def heuristic(startNode, endNode):
     # Calculate the heuristic using the Manhattan distance formula
     return abs(startNode[0] - endNode[0]) + abs(startNode[1] - endNode[1])
 
+
 def dijkstra(start: Node, goal: Node, graph: Graph):
+    """dijkstra() is used to run dijkstra's shortest path algorithm"""
     # Create a list of nodes to be explored (the "open list")
     openList = [start]
     # Create a list of nodes that have been explored (the "closed list")
@@ -58,17 +60,22 @@ def dijkstra(start: Node, goal: Node, graph: Graph):
     return []
 
 
-def runDijkstra(start, goal, auxiliaryNodes, graph):
+def runDijkstra(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -> [[Node], int]:
+    """runDijkstra() is used to run dijkstra() with auxiliary nodes"""
     path = []
     totalDistance = 0
+    # If there are auxiliary nodes, run Dijkstra's algorithm with each one in turn
     if auxiliaryNodes:
-        for _ in auxiliaryNodes:
-            tmp = auxiliaryNodes.pop(0)
-            curPath, curDistance = dijkstra(start, tmp, graph)
+        for aNode in auxiliaryNodes:
+            curPath, curDistance = dijkstra(start, aNode, graph)
+            # Add the current path to the overall path
             for node in curPath:
                 path.append(node)
-            start = tmp
+            # Set the current node as the new starting node
+            start = aNode
+            # Add the current distance to the total distance
             totalDistance += curDistance
+    # Run Dijkstra's algorithm with the final start and goal nodes
     curPath, curDistance = dijkstra(start, goal, graph)
     totalDistance += curDistance
     for node in curPath:
