@@ -91,10 +91,6 @@ class PyGUI:
 
             if visualiseButton.update(eventList) >= 0:
                 try:
-                    self.pathSurface.fill((0, 0, 0, 0))
-                    self.pathSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
-                    self.pathSurface = self.weightSurface.convert_alpha()
-                    self.window.blit(self.pathSurface, (0, 0))
                     pygame.display.update()
                     self.visualise(curAlgorithm)
                 except UnboundLocalError:
@@ -259,6 +255,8 @@ class PyGUI:
 
     def visualise(self, selectedAlgorithm):
         """visualise() takes in a selected algorithm and visualises the pathfinding process"""
+        self.pathSurface.fill((0, 0, 0, 0))
+
         start = self.nodeGraph.findStart()
         end = self.nodeGraph.findEnd()
         auxiliaries = self.nodeGraph.findAuxiliaries()
@@ -276,6 +274,7 @@ class PyGUI:
         for node in closedList[1::]:
             self.placePath(node.getPosition(), True)
             self.window.blit(self.pathSurface, (0, 0))
+            self.window.blit(self.gridSurface, (0, 0))
             pygame.time.wait(10)
             pygame.display.update()
 
