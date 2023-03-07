@@ -3,8 +3,11 @@ class Node:
         """type values: -1 is empty, 1 is start, 2 is end, 3 is auxiliary, 4 is wall node"""
         self.position = position
         self.parent = parent
-        self.distance = 0  # G Score
-        self.estimated = 0  # F Score
+        self.distance = 0
+        self.estimated = 0
+        self.gCost = 0
+        self.hCost = 0
+        self.fCost = 0
         self.isWalkable = True
         self.diagonal = False
         self.weight = 1

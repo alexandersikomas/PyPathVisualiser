@@ -1,5 +1,3 @@
-from typing import List, Any, Tuple
-
 from graph import Graph
 from node import Node
 
@@ -7,21 +5,22 @@ from node import Node
 def aStar(start: Node, goal: Node, graph: Graph):
     openList = [start]
     closedList = []
-    start.distance = 0
 
-    # Calculate the heuristic (estimated distance to goal) for the start node
-    start.estimated = heuristic(start.getPosition(), goal.getPosition())
+    for row in graph.getNodes():
+        for node in row:
+            node.fCost = float('inf')
+            node.gCost = float('inf')
 
-    # Keep looping while there are nodes in the open list
+    start.gCost = 0
+    start.fCost = heuristic(start.getPosition(), goal.getPosition())
+
     while openList:
         # Find the node with the lowest estimated distance in the open list
-        current = min(openList, key=lambda node: node.estimated)
-        #current = openList.sort(key=lambda node: node.estimated)
+        current = min(openList, key=lambda n: (n.fCost, n.hCost))
 
-        # If the current node is the goal node, we have found the shortest path
-        if current is goal:
+        if current == goal:
             path = []
-            totalDistance = current.distance
+            totalDistance = current.gCost
             # Trace the path by following the parent nodes back to the start
             while current is not start:
                 path.append(current)
@@ -32,32 +31,35 @@ def aStar(start: Node, goal: Node, graph: Graph):
         openList.remove(current)
         closedList.append(current)
 
-        neighbours = graph.getNeighbours(current)
+        neighbours = graph.getNeighbours(current, diagonalOption=True)
         for neighbour in neighbours:
             if neighbour in closedList or not neighbour.isWalkable:
                 continue
-            # Calculate the distance from the current node to the neighbour
-            distance = current.distance + neighbour.getWeight() * (int(neighbour.diagonal) + 1)
 
-            if neighbour not in openList:
-                # Set the neighbour's distance and estimated distance
-                neighbour.distance = distance
-                neighbour.estimated = heuristic(neighbour.getPosition(), goal.getPosition())
-                # Set the neighbour's parent node to the current node
-                neighbour.parent = current
-                openList.append(neighbour)
-            if neighbour.estimated < neighbour.distance:
-                neighbour.distance = neighbour.estimated
-                neighbour.parent = current
+            tmpGCost = current.gCost + (neighbour.weight - 1) + heuristic(current.getPosition(),
+                                                                          neighbour.getPosition())
 
+            if (tmpGCost < neighbour.gCost) or neighbour not in openList:
+                neighbour.parent = current
+                neighbour.gCost = tmpGCost
+                neighbour.fCost = tmpGCost + heuristic(neighbour.getPosition(), goal.getPosition())
+                neighbour.hCost = heuristic(neighbour.getPosition(), goal.getPosition())
+
+                if neighbour not in openList:
+                    openList.append(neighbour)
 
     # If the open list is empty, we have explored all reachable nodes and there is no path to the goal
-    return [[], 0, []]
+    return [[], 0, closedList]
 
 
-def heuristic(startNode: [int, int], endNode: [int, int]) -> int:
+def heuristic(startNode: [int, int], endNode: [int, int]) -> float:
     # Calculate the heuristic using the Manhattan distance formula
-    return abs(startNode[0] - endNode[0]) + abs(startNode[1] - endNode[1])
+    dx = abs(startNode[0] - endNode[0])
+    dy = abs(startNode[1] - endNode[1])
+
+    if dx > dy:
+        return 2 * dy + (dx - dy)
+    return 2 * dx + (dy - dx)
 
 
 def runAStar(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -> tuple[list, int, list]:
@@ -76,7 +78,7 @@ def runAStar(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -> t
             start = aNode
             # If at any point an auxiliary node is unreachable, return an empty path
             if curDistance == 0:
-                return [], 0
+                return [], 0, []
             totalDistance += curDistance
     curPath, curDistance, curClosedList = aStar(start, goal, graph)
     totalDistance += curDistance

@@ -217,8 +217,10 @@ class PyGUI:
             nodeType = -1
         if nodes[pos[0]][pos[1]].getWeight() > 1:
             self.removeWeight(pos)
-        nodes[pos[0]][pos[1]].setType(nodeType)
-        pygame.draw.rect(self.gridSurface, self.colours[str(nodeType)], rect, 0)
+        # print(nodes[pos[0]][pos[1]].getType())
+        if nodes[pos[0]][pos[1]].getType() < 4:
+            nodes[pos[0]][pos[1]].setType(nodeType)
+            pygame.draw.rect(self.gridSurface, self.colours[str(nodeType)], rect, 0)
 
     def clearGrid(self) -> None:
         """clearGrid() clears the grid of all nodes and weights"""
@@ -232,7 +234,8 @@ class PyGUI:
     def placeWeight(self, pos: [int, int], weightCost: int = 1) -> None:
         """placeWeight() takes in a mouse index and places a weight node at that position"""
         self.removeWeight(pos)
-        rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1] + self.margin//4, self.margin,
+        rect = pygame.Rect(self.xLOffset + self.margin * pos[0],
+                           self.yTOffset + self.margin * pos[1] + self.margin // 4, self.margin,
                            self.margin)
         font = pygame.font.SysFont("freesansbold", 17)
 
@@ -261,7 +264,7 @@ class PyGUI:
         start = self.nodeGraph.findStart()
         end = self.nodeGraph.findEnd()
         auxiliaries = self.nodeGraph.findAuxiliaries()
-        # The algorithms chane the distances of the nodes, so the distances need to be reset
+        # The algorithms change the distances of the nodes, so the distances need to be reset
         tmp = self.nodeGraph
         if selectedAlgorithm == 1:
             nodes, totalDistance, closedList = runDijkstra(start, end, auxiliaries, self.nodeGraph)
@@ -279,13 +282,13 @@ class PyGUI:
             pygame.time.wait(10)
             pygame.display.update()
 
-        pygame.event.set_allowed(pygame.MOUSEBUTTONDOWN)
         for node in nodes[0:-1]:
             self.placePath(node.getPosition())
         if totalDistance > 0:
             print(f'Distance: {totalDistance}')
         else:
             print("No path found")
+
     def placePath(self, pos: [int, int], closed=False) -> None:
         """placePath() takes in a list of nodes and places a path between them"""
         rect = pygame.Rect(self.xLOffset + self.margin * pos[0], self.yTOffset + self.margin * pos[1], self.margin,

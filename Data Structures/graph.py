@@ -39,7 +39,7 @@ class Graph:
         if diagonalOption:
             positions.extend([(1, 1), (-1, -1), (1, -1), (-1, 1)])
 
-        for dx, dy in [(0, -1), (1, 0), (0, 1), (-1, 0), (1, 1), (-1, -1), (1, -1), (-1, 1)]:
+        for dx, dy in positions:
             pos = node.getPosition()
             x = pos[0] + dx
             y = pos[1] + dy
