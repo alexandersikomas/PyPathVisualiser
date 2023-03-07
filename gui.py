@@ -280,6 +280,8 @@ class PyGUI:
             self.window.blit(self.pathSurface, (0, 0))
             self.window.blit(self.gridSurface, (0, 0))
             pygame.time.wait(10)
+            pygame.display.flip()
+            pygame.event.pump()
             pygame.display.update()
 
         for node in nodes[0:-1]:
