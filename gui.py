@@ -5,6 +5,9 @@ from dijkstra import runDijkstra
 from astar import runAStar
 from graph import Graph
 
+# GLOBAL VARIABLES
+FREE_SANS_FONT = lambda size: pygame.font.SysFont("freesansbold", size)
+
 
 class PyGUI:
     def __init__(self) -> None:
@@ -17,6 +20,7 @@ class PyGUI:
             self.yBOffset = settings['margins']['yBOffset']
             self.margin = settings['margins']['margin']
             self.colours = settings['colors']
+            self.speed = settings['renderSpeed']['speed']
         self.caption = "PyPath Visualiser"
         self.isRunning = None
         self.window = pygame.display.set_mode(self.windowSize)
@@ -28,7 +32,9 @@ class PyGUI:
         self.weightSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
         self.weightSurface = self.weightSurface.convert_alpha()
         self.pathSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
-        self.pathSurface = self.weightSurface.convert_alpha()
+        self.pathSurface = self.pathSurface.convert_alpha()
+        self.textSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
+        self.textSurface = self.textSurface.convert_alpha()
         self.clock = pygame.time.Clock()
         size = self.getGridSize()
         self.nodeGraph = Graph([size[0], size[1]])
@@ -45,16 +51,17 @@ class PyGUI:
         # This makes 'Nodes' option do nothing
         curNodeOption = -1
         self.isRunning = True
+        ranVisualise = False
 
         # BUTTON DEFINITION START
         nodesMenu = DropdownBox(
             self.xLOffset, 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
-            pygame.font.SysFont("freesansbold", 30),
+            FREE_SANS_FONT(30),
             ["Nodes", "Start node", "End node", "Auxiliary node", "Wall", "Eraser", "Weight"])
 
         algorithmsMenu = DropdownBox(
             (160 + self.xLOffset), 40, 160, 40, pygame.Color(150, 150, 150), pygame.Color(100, 200, 255),
-            pygame.font.SysFont("freesansbold", 30),
+            FREE_SANS_FONT(30),
             ["Algorithms", "Dijkstra's", "A*"])
 
         weightInput = InputBox((160 * 2 + self.xLOffset + 2), 42, 160, 36)
@@ -62,11 +69,11 @@ class PyGUI:
         visualiseButton = Button(
             (self.windowSize[0] - self.xLOffset - self.xROffset) // 2, 40, 160, 40, pygame.Color(150, 150, 150),
             pygame.Color(100, 200, 255),
-            pygame.font.SysFont("freesansbold", 30), "Visualise")
+            FREE_SANS_FONT(30), "Visualise")
 
         clearButton = Button(self.windowSize[0] - self.xROffset - 160, 40, 160, 40, pygame.Color(150, 150, 150),
                              pygame.Color(100, 200, 255),
-                             pygame.font.SysFont("freesansbold", 30), "Clear all")
+                             FREE_SANS_FONT(30), "Clear all")
         # BUTTON DEFINITION END
 
         while self.isRunning:
@@ -94,6 +101,7 @@ class PyGUI:
             if visualisePress >= 0:
                 try:
                     self.visualise(curAlgorithm)
+                    ranVisualise = True
                 except UnboundLocalError:
                     print("No algorithm selected")
 
@@ -102,14 +110,18 @@ class PyGUI:
                 if event.type == pygame.QUIT:
                     self.isRunning = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and not potentialCollision:
-                    pos = pygame.mouse.get_pos()
-                    # Makes weight option not place node
-                    if self.checkMouseOnGrid(pos):
-                        pos = self.mouseToIndex(pos)
-                        if curNodeOption <= 5:
-                            self.placeNode(curNodeOption, pos)
-                        elif curNodeOption == 6:
-                            self.placeWeight(pos, weightCost=weightInput.value)
+                    if ranVisualise:
+                        ranVisualise = False
+                        pygame.event.clear()
+                    else:
+                        pos = pygame.mouse.get_pos()
+                        # Makes weight option not place node
+                        if self.checkMouseOnGrid(pos):
+                            pos = self.mouseToIndex(pos)
+                            if curNodeOption <= 5:
+                                self.placeNode(curNodeOption, pos)
+                            elif curNodeOption == 6:
+                                self.placeWeight(pos, weightCost=weightInput.value)
 
             curPos = pygame.mouse.get_pos()
             curIndex = self.mouseToIndex(curPos)
@@ -124,6 +136,7 @@ class PyGUI:
             self.window.blit(self.fadeRectSurface, (0, 0))
             # Draw the self.weightSurface surface onto the screen
             self.window.blit(self.weightSurface, (0, 0))
+            self.window.blit(self.textSurface, (0, 0))
             nodesMenu.draw(self.window)
 
             if clearButton.update(eventList) >= 0:
@@ -237,7 +250,7 @@ class PyGUI:
         rect = pygame.Rect(self.xLOffset + self.margin * pos[0],
                            self.yTOffset + self.margin * pos[1] + self.margin // 4, self.margin,
                            self.margin)
-        font = pygame.font.SysFont("freesansbold", 17)
+        font = FREE_SANS_FONT(17)
 
         nodes = self.nodeGraph.getNodes()
         # Check to make sure node is 'air' node otherwise don't place weight
@@ -268,26 +281,35 @@ class PyGUI:
         tmp = self.nodeGraph
         if selectedAlgorithm == 1:
             nodes, totalDistance, closedList = runDijkstra(start, end, auxiliaries, self.nodeGraph)
-            print("Running Dijkstra's algorithm")
         elif selectedAlgorithm == 2:
             nodes, totalDistance, closedList = runAStar(start, end, auxiliaries, self.nodeGraph)
-            print("Running A* algorithm")
 
         self.nodeGraph = tmp
 
+        speedFunction = lambda x: 1 if x == 10 else 100 if x == 1 else (10 - x) * 9 + 1
         for node in closedList[1::]:
+            # Draws the blue explored nodes
             self.placePath(node.getPosition(), True)
             self.window.blit(self.pathSurface, (0, 0))
             self.window.blit(self.gridSurface, (0, 0))
-            pygame.time.wait(10)
+            pygame.time.wait(speedFunction(self.speed))
             pygame.display.flip()
-            pygame.event.pump()
             pygame.display.update()
+            pygame.event.clear(pump=True)
 
         for node in nodes[0:-1]:
+            # Draws the yellow path nodes
             self.placePath(node.getPosition())
         if totalDistance > 0:
-            print(f'Distance: {totalDistance}')
+            self.textSurface.fill((0, 0, 0, 0))
+            outputText = FREE_SANS_FONT(30)
+            efficiencyText = outputText.render(f'Calculations: {len(closedList)}', True, 'white', None)
+            distanceText = outputText.render(f'Distance: {totalDistance}', True, 'white', None)
+            self.textSurface.blit(efficiencyText,
+                                  pygame.Rect(int(self.margin * 2.5), self.windowSize[1] - (2 * self.margin), 20, 20))
+            self.textSurface.blit(distanceText,
+                                  pygame.Rect(self.windowSize[0] - int(self.margin * 10),
+                                              self.windowSize[1] - (2 * self.margin), 20, 20))
         else:
             print("No path found")
 
@@ -408,7 +430,7 @@ class DropdownBox:
 class InputBox:
     def __init__(self, x, y, width, height):
         self.rect = pygame.Rect(x, y, width, height)
-        self.font = pygame.font.SysFont("freesansbold", 30)
+        self.font = FREE_SANS_FONT(30)
         self.text = ""
         self.value = 1
 

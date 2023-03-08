@@ -31,6 +31,7 @@ def aStar(start: Node, goal: Node, graph: Graph):
         openList.remove(current)
         closedList.append(current)
 
+        #neighbours = graph.getNeighbours(current, diagonalOption=True)
         neighbours = graph.getNeighbours(current, diagonalOption=True)
         for neighbour in neighbours:
             if neighbour in closedList or not neighbour.isWalkable:
