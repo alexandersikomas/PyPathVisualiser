@@ -1,5 +1,5 @@
 # PyPathVisualiser
-This is a project for OCR H446 A-Level Computer Science. It is an attempt at creating a pathfinding visualiser using Python and PyGame.
+This is a project for OCR H446 A-Level Computer Science, it is a pathfinding visualiser using Python.
 
 ### Features
 
