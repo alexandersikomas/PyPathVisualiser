@@ -11,6 +11,6 @@ This is a project for OCR H446 A-Level Computer Science. It is an attempt at cre
 - Ability to place weighted nodes.
 
 <p float="left">
-  <img src="_imgs/path1.png" alt="Path 1" width="600" hspace="20"/> 
-  <img src="_imgs/path2.png" alt="Path 2" width="600" hspace="20"/>
+  <img src="_imgs/path1.png" alt="Path 1" width="700" hspace="20"/> 
+  <img src="_imgs/path2.png" alt="Path 2" width="700" hspace="20"/>
 </p>
