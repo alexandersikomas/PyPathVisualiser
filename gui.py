@@ -35,6 +35,9 @@ class PyGUI:
         self.pathSurface = self.pathSurface.convert_alpha()
         self.textSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
         self.textSurface = self.textSurface.convert_alpha()
+        self.settingsSurface = pygame.Surface(self.windowSize, pygame.SRCALPHA, 32)
+        self.settingsSurface = self.settingsSurface.convert_alpha()
+        self.settingsOpen = False
         self.clock = pygame.time.Clock()
         size = self.getGridSize()
         self.nodeGraph = Graph([size[0], size[1]])
@@ -64,12 +67,13 @@ class PyGUI:
             FREE_SANS_FONT(30),
             ["Algorithms", "Dijkstra's", "A*"])
 
-        weightInput = InputBox((160 * 2 + self.xLOffset + 2), 42, 160, 36)
+        weightInput = InputBox((160 * 2 + self.xLOffset + 2), 42, 160, 36, 'Weight:')
 
         visualiseButton = Button(
             (self.windowSize[0] - self.xLOffset - self.xROffset) // 2, 40, 160, 40, pygame.Color(150, 150, 150),
             pygame.Color(100, 200, 255),
             FREE_SANS_FONT(30), "Visualise")
+
 
         clearButton = Button(self.windowSize[0] - self.xROffset - 160, 40, 160, 40, pygame.Color(150, 150, 150),
                              pygame.Color(100, 200, 255),
@@ -107,6 +111,7 @@ class PyGUI:
 
             for event in eventList:
                 weightInput.handleEvent(event)
+
                 if event.type == pygame.QUIT:
                     self.isRunning = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and not potentialCollision:
@@ -126,7 +131,7 @@ class PyGUI:
             curPos = pygame.mouse.get_pos()
             curIndex = self.mouseToIndex(curPos)
             if self.checkMouseOnGrid(curPos):
-                # Creates a yellow rectangle and increases the opacity by 50 for every tick
+                # Creates a white rectangle around hovering node
                 self.drawRectOnHover(curIndex)
 
             # Draws all surfaces at 0,0
@@ -136,16 +141,19 @@ class PyGUI:
             self.window.blit(self.fadeRectSurface, (0, 0))
             # Draw the self.weightSurface surface onto the screen
             self.window.blit(self.weightSurface, (0, 0))
+            self.window.blit(self.settingsSurface, (0, 0))
             self.window.blit(self.textSurface, (0, 0))
-            nodesMenu.draw(self.window)
+
 
             if clearButton.update(eventList) >= 0:
                 self.clearGrid()
 
+            nodesMenu.draw(self.window)
             weightInput.draw(self.window)
             algorithmsMenu.draw(self.window)
             visualiseButton.draw(self.window)
             clearButton.draw(self.window)
+
             potentialCollision = False
             pygame.display.update()
 
@@ -231,9 +239,10 @@ class PyGUI:
         if nodes[pos[0]][pos[1]].getWeight() > 1:
             self.removeWeight(pos)
         # print(nodes[pos[0]][pos[1]].getType())
-        if nodes[pos[0]][pos[1]].getType() < 4:
+        if nodes[pos[0]][pos[1]].getType() <= 4:
             nodes[pos[0]][pos[1]].setType(nodeType)
             pygame.draw.rect(self.gridSurface, self.colours[str(nodeType)], rect, 0)
+
 
     def clearGrid(self) -> None:
         """clearGrid() clears the grid of all nodes and weights"""
@@ -323,6 +332,7 @@ class PyGUI:
             colour = self.colours["6"]
 
         pygame.draw.rect(self.pathSurface, colour, rect, 0)
+
 
 
 class Button:
@@ -428,10 +438,11 @@ class DropdownBox:
 
 
 class InputBox:
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, placeholder=''):
         self.rect = pygame.Rect(x, y, width, height)
         self.font = FREE_SANS_FONT(30)
-        self.text = ""
+        self.placeholder = placeholder
+        self.text = self.placeholder
         self.value = 1
 
     def draw(self, screen):
@@ -446,6 +457,8 @@ class InputBox:
 
     def handleEvent(self, event):
         if event.type == pygame.KEYDOWN:
+            if self.text == self.placeholder:
+                self.text = ''
             if event.key == pygame.K_BACKSPACE:
                 # Handle backspace key
                 self.text = self.text[:-1]
