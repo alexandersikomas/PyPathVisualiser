@@ -4,40 +4,26 @@ from node import Node
 
 def dijkstra(start: Node, goal: Node, graph: Graph) -> tuple[list, int, list]:
     """dijkstra() is used to run dijkstra's shortest path algorithm"""
-    # Create a list of nodes to be explored (the "open list")
     openList = [start]
-    # Create a list of nodes that have been explored (the "closed list")
     closedList = []
-    # Set the starting node's distance to 0
     start.distance = 0
 
-    # Keep looping while there are nodes in the open list
     while openList:
-        # Find the node with the lowest distance in the open list
         current = min(openList, key=lambda node: node.distance)
 
-        # If the current node is the goal node, we have found the shortest path
         if current == goal:
-            # Create an array to store the path
             path = []
             totalDistance = current.getDistance()
-            # Trace the path by following the parent nodes back to the start
             while current != start:
                 path.append(current)
                 current = current.parent
-            # Return the path, with the start node at the front and the goal node at the end
             return path[::-1], totalDistance, closedList
 
-        # Remove the current node from the open list
         openList.remove(current)
-        # Add the current node to the closed list
         closedList.append(current)
 
-        # Get a list of the current node's neighbours
         neighbours = graph.getNeighbours(current)
-        # Loop through the neighbours
         for neighbour in neighbours:
-            # Skip the neighbour if it is in the closed list or is not walkable
             if neighbour in closedList or not neighbour.isWalkable:
                 continue
 
@@ -51,7 +37,6 @@ def dijkstra(start: Node, goal: Node, graph: Graph) -> tuple[list, int, list]:
                 neighbour.distance = distance
                 neighbour.parent = current
 
-    # If the open list is empty, we have explored all reachable nodes and there is no path to the goal
     return [[], 0, []]
 
 
@@ -60,19 +45,14 @@ def runDijkstra(start: Node, goal: Node, auxiliaryNodes: [Node], graph: Graph) -
     path = []
     closedList = []
     totalDistance = 0
-    # If there are auxiliary nodes, run Dijkstra's algorithm with each one in turn
     if auxiliaryNodes:
         for aNode in auxiliaryNodes:
             curPath, curDistance, curClosedList = dijkstra(start, aNode, graph)
-            # Add the current path to the overall path
             for node in curPath:
                 path.append(node)
             for node in curClosedList:
                 closedList.append(node)
-            # Set the current node as the new starting node
             start = aNode
-            # Add the current distance to the total distance
-            # If at any point an auxiliary node is unreachable, return an empty path
             if curDistance == 0:
                 return [], 0, []
             totalDistance += curDistance
